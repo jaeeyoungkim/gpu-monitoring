@@ -1,0 +1,64 @@
+name: gpu_heatmap_dashboard
+description: WhaTap GPU 통합 모니터링 대시보드 - Flutter 버전
+version: 3.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: ">=3.10.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  
+  # UI & Material Design
+  dynamic_color: ^1.6.8
+  
+  # State Management
+  provider: ^6.1.1
+  riverpod: ^2.4.9
+  flutter_riverpod: ^2.4.9
+  
+  # Charts & Data Visualization
+  fl_chart: ^1.0.0
+  syncfusion_flutter_charts: ^30.1.42
+  syncfusion_flutter_datagrid: ^30.1.42
+  
+  # HTTP & Data
+  http: ^1.1.2
+  dio: ^5.4.0
+  json_annotation: ^4.8.1
+  
+  # Utilities
+  collection: ^1.18.0
+  equatable: ^2.0.5
+  
+  # Animations
+  animations: ^2.0.8
+  lottie: ^3.3.1
+  
+  # Icons
+  cupertino_icons: ^1.0.6
+  material_symbols_icons: ^4.2719.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  
+  # Code Generation
+  build_runner: ^2.4.7
+  json_serializable: ^6.7.1
+  
+  # Linting
+  flutter_lints: ^6.0.0
+  
+  # Testing
+  mockito: ^5.4.4
+
+flutter:
+  uses-material-design: true
+  
+  assets:
+    - assets/images/
+  
