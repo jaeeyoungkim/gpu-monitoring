@@ -10,12 +10,8 @@ import '../widgets/heatmap_widget.dart';
 import '../services/gpu_data_service.dart';
 import '../services/custom_column_service.dart';
 import '../services/cost_calculation_service.dart';
-import '../services/daily_cost_service.dart';
-import '../models/daily_cost_model.dart';
 import '../utils/constants.dart';
 import '../utils/theme.dart';
-import 'package:fl_chart/fl_chart.dart';
-import 'package:intl/intl.dart';
 
 /// 메인 대시보드 화면
 class DashboardScreen extends ConsumerStatefulWidget {
@@ -38,7 +34,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   void initState() {
     super.initState();
     
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     
     _headerAnimationController = AnimationController(
       duration: AppConstants.animationDurationSlow,
@@ -95,9 +91,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                   children: [
                     // 인벤토리 관리 탭
                     _buildInventoryTab(gpuData, theme),
-                    
-                    // GPU 비용 탭
-                    _buildCostAnalysisTab(gpuData, theme),
                     
                     // 히트맵 탭
                     _buildHeatmapTab(gpuData, theme),
@@ -302,10 +295,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             text: '인벤토리 관리',
           ),
           Tab(
-            icon: Icon(Icons.attach_money),
-            text: 'GPU 비용',
-          ),
-          Tab(
             icon: Icon(Icons.grid_view),
             text: 'GPU 히트맵',
           ),
@@ -367,773 +356,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     );
   }
 
-  Widget _buildCostAnalysisTab(List<GPUModel> gpuData, ThemeData theme) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppConstants.spacingM),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 헤더
-          Row(
-            children: [
-              Icon(
-                Icons.attach_money,
-                size: 28,
-                color: theme.colorScheme.primary,
-              ),
-              const SizedBox(width: AppConstants.spacingM),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      ' GPU 비용 분석',
-                      style: theme.textTheme.headlineMedium,
-                    ),
-                    Text(
-                      '부서별/사용자별 GPU 사용 비용 추이',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          
-          const SizedBox(height: AppConstants.spacingL),
-          
-          // 필터 섹션
-          _buildCostFilterSection(gpuData, theme),
-          
-          const SizedBox(height: AppConstants.spacingL),
-          
-          // 스택 라인 차트
-          _buildStackLineChart(gpuData, theme),
-          
-          const SizedBox(height: AppConstants.spacingL),
-          
-          // 비용 요약 카드들
-          _buildCostSummaryCards(gpuData, theme),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCostFilterSection(List<GPUModel> gpuData, ThemeData theme) {
-    final departments = gpuData
-        .where((gpu) => gpu.departmentName != null)
-        .map((gpu) => gpu.departmentName!)
-        .toSet()
-        .toList()
-        ..sort();
-    
-    final users = gpuData
-        .where((gpu) => gpu.userName != null)
-        .map((gpu) => gpu.userName!)
-        .toSet()
-        .toList()
-        ..sort();
-
-    final filterState = ref.watch(costFilterProvider);
-    final filterNotifier = ref.read(costFilterProvider.notifier);
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppConstants.spacingL),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Text(
-                  '필터',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const Spacer(),
-                // 전체 선택/해제 버튼
-                TextButton.icon(
-                  onPressed: () {
-                    if (filterState.selectedDepartments.length == departments.length) {
-                      filterNotifier.clearAllDepartments();
-                    } else {
-                      filterNotifier.selectAllDepartments(departments);
-                    }
-                  },
-                  icon: Icon(
-                    filterState.selectedDepartments.length == departments.length
-                        ? Icons.deselect
-                        : Icons.select_all,
-                    size: 16,
-                  ),
-                  label: Text(
-                    filterState.selectedDepartments.length == departments.length
-                        ? '전체 해제'
-                        : '전체 선택',
-                    style: theme.textTheme.labelSmall,
-                  ),
-                ),
-                TextButton.icon(
-                  onPressed: () {
-                    filterNotifier.resetFilters();
-                  },
-                  icon: const Icon(Icons.refresh, size: 16),
-                  label: Text('초기화', style: theme.textTheme.labelSmall),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppConstants.spacingM),
-            Row(
-              children: [
-                // 부서 필터
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '부서 필터 (${filterState.selectedDepartments.length}/${departments.length})',
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: AppConstants.spacingS),
-                      Container(
-                        constraints: const BoxConstraints(maxHeight: 90),
-                        padding: const EdgeInsets.all(AppConstants.spacingS),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: theme.colorScheme.outline.withOpacity(0.3)),
-                          borderRadius: BorderRadius.circular(AppConstants.radiusS),
-                        ),
-                        child: SingleChildScrollView(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: departments.map((dept) => CheckboxListTile(
-                              dense: true,
-                              visualDensity: VisualDensity.compact,
-                              contentPadding: EdgeInsets.zero,
-                              title: Text(dept, style: theme.textTheme.bodySmall),
-                              value: filterState.selectedDepartments.contains(dept),
-                              onChanged: (value) {
-                                filterNotifier.toggleDepartment(dept);
-                              },
-                              activeColor: theme.colorScheme.primary,
-                            )).toList(),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: AppConstants.spacingM),
-                // 사용자 필터
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '사용자 필터 (${filterState.selectedUsers.length}/${users.length})',
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: AppConstants.spacingS),
-                      Container(
-                        constraints: const BoxConstraints(maxHeight: 90),
-                        padding: const EdgeInsets.all(AppConstants.spacingS),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: theme.colorScheme.outline.withOpacity(0.3)),
-                          borderRadius: BorderRadius.circular(AppConstants.radiusS),
-                        ),
-                        child: SingleChildScrollView(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: users.map((user) => CheckboxListTile(
-                              dense: true,
-                              visualDensity: VisualDensity.compact,
-                              contentPadding: EdgeInsets.zero,
-                              title: Text(user, style: theme.textTheme.bodySmall),
-                              value: filterState.selectedUsers.contains(user),
-                              onChanged: (value) {
-                                filterNotifier.toggleUser(user);
-                              },
-                              activeColor: theme.colorScheme.secondary,
-                            )).toList(),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: AppConstants.spacingM),
-                // 기간 필터
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '기간 필터',
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: AppConstants.spacingS),
-                      Container(
-                        padding: const EdgeInsets.all(AppConstants.spacingS),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: theme.colorScheme.outline.withOpacity(0.3)),
-                          borderRadius: BorderRadius.circular(AppConstants.radiusS),
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            RadioListTile<DateRangeType>(
-                              dense: true,
-                              title: Text('📅 최근30일', style: theme.textTheme.bodySmall),
-                              value: DateRangeType.last30Days,
-                              groupValue: filterState.dateRange.type,
-                              onChanged: (value) {
-                                if (value != null) {
-                                  filterNotifier.updateDateRange(DateRange.last30Days());
-                                }
-                              },
-                            ),
-                            RadioListTile<DateRangeType>(
-                              dense: true,
-                              title: Text('📅 최근7일', style: theme.textTheme.bodySmall),
-                              value: DateRangeType.last7Days,
-                              groupValue: filterState.dateRange.type,
-                              onChanged: (value) {
-                                if (value != null) {
-                                  filterNotifier.updateDateRange(DateRange.last7Days());
-                                }
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppConstants.spacingM),
-            // 현재 필터 상태 표시
-            Wrap(
-              spacing: AppConstants.spacingS,
-              runSpacing: AppConstants.spacingS,
-              children: [
-                if (filterState.selectedDepartments.isNotEmpty)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppConstants.spacingS,
-                      vertical: AppConstants.spacingXS,
-                    ),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(AppConstants.radiusS),
-                      border: Border.all(color: theme.colorScheme.primary.withOpacity(0.3)),
-                    ),
-                    child: Text(
-                      '부서: ${filterState.selectedDepartments.length}개 선택',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.colorScheme.primary,
-                      ),
-                    ),
-                  ),
-                if (filterState.selectedUsers.isNotEmpty)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppConstants.spacingS,
-                      vertical: AppConstants.spacingXS,
-                    ),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.secondary.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(AppConstants.radiusS),
-                      border: Border.all(color: theme.colorScheme.secondary.withOpacity(0.3)),
-                    ),
-                    child: Text(
-                      '사용자: ${filterState.selectedUsers.length}개 선택',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.colorScheme.secondary,
-                      ),
-                    ),
-                  ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppConstants.spacingS,
-                    vertical: AppConstants.spacingXS,
-                  ),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.tertiary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(AppConstants.radiusS),
-                    border: Border.all(color: theme.colorScheme.tertiary.withOpacity(0.3)),
-                  ),
-                  child: Text(
-                    '기간: ${_getDateRangeLabel(filterState.dateRange)}',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.tertiary,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _getDateRangeLabel(DateRange dateRange) {
-    switch (dateRange.type) {
-      case DateRangeType.last30Days:
-        return '최근 30일';
-      case DateRangeType.last7Days:
-        return '최근 7일';
-      case DateRangeType.custom:
-        return '${dateRange.startDate.month}/${dateRange.startDate.day} - ${dateRange.endDate.month}/${dateRange.endDate.day}';
-    }
-  }
-
-  Widget _buildStackLineChart(List<GPUModel> gpuData, ThemeData theme) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppConstants.spacingL),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Text(
-                  '부서별 일별 비용 추이',
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const Spacer(),
-                Icon(
-                  Icons.show_chart,
-                  color: theme.colorScheme.primary,
-                  size: 20,
-                ),
-              ],
-            ),
-            const SizedBox(height: AppConstants.spacingM),
-            // 차트 영역
-            Container(
-              height: 400,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surface,
-                borderRadius: BorderRadius.circular(AppConstants.radiusM),
-                border: Border.all(
-                  color: theme.colorScheme.outline.withOpacity(0.2),
-                ),
-              ),
-              child: Consumer(
-                builder: (context, ref, child) {
-                  final filteredDataAsync = ref.watch(filteredCostDataProvider);
-                  final filterState = ref.watch(costFilterProvider);
-                  
-                  return filteredDataAsync.when(
-                    data: (aggregatedData) => _buildActualStackChart(aggregatedData, filterState, theme),
-                    loading: () => Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const CircularProgressIndicator(),
-                          const SizedBox(height: AppConstants.spacingM),
-                          Text(
-                            '비용 데이터 로딩 중...',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    error: (error, stack) => Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.error_outline,
-                            size: 48,
-                            color: theme.colorScheme.error,
-                          ),
-                          const SizedBox(height: AppConstants.spacingM),
-                          Text(
-                            '데이터 로딩 실패',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              color: theme.colorScheme.error,
-                            ),
-                          ),
-                          Text(
-                            error.toString(),
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActualStackChart(AggregatedCostData aggregatedData, FilterState filterState, ThemeData theme) {
-    if (aggregatedData.departmentDaily.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.data_usage_outlined,
-              size: 48,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(height: AppConstants.spacingM),
-            Text(
-              '표시할 데이터가 없습니다',
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            Text(
-              '부서를 선택하거나 필터를 조정해 주세요',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    // 부서별 색상 정의
-    final departmentColors = <String, Color>{};
-    final colors = [
-      theme.colorScheme.primary,
-      theme.colorScheme.secondary,
-      theme.colorScheme.tertiary,
-      const Color(0xFFFF9800), // Orange
-      const Color(0xFF4CAF50), // Green
-      const Color(0xFF9C27B0), // Purple
-      const Color(0xFF00BCD4), // Cyan
-      const Color(0xFFFF5722), // Deep Orange
-    ];
-    
-    int colorIndex = 0;
-    for (final dept in aggregatedData.departments) {
-      departmentColors[dept] = colors[colorIndex % colors.length];
-      colorIndex++;
-    }
-
-    // 날짜 범위에서 모든 날짜 가져오기
-    final allDates = aggregatedData.totalDaily.keys.toList()..sort();
-    if (allDates.isEmpty) {
-      return Center(
-        child: Text(
-          '선택된 기간에 데이터가 없습니다',
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-      );
-    }
-
-    return Padding(
-      padding: const EdgeInsets.all(AppConstants.spacingM),
-      child: Column(
-        children: [
-          // 범례
-          Wrap(
-            spacing: AppConstants.spacingM,
-            runSpacing: AppConstants.spacingS,
-            children: aggregatedData.departments.map((dept) => Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 12,
-                  height: 12,
-                  decoration: BoxDecoration(
-                    color: departmentColors[dept],
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(width: AppConstants.spacingXS),
-                Text(
-                  dept,
-                  style: theme.textTheme.labelSmall,
-                ),
-              ],
-            )).toList(),
-          ),
-          const SizedBox(height: AppConstants.spacingM),
-          // 차트
-          Expanded(
-            child: LineChart(
-              LineChartData(
-                gridData: FlGridData(
-                  show: true,
-                  drawVerticalLine: true,
-                  drawHorizontalLine: true,
-                  horizontalInterval: _calculateGridInterval(aggregatedData.totalDaily.values),
-                  getDrawingHorizontalLine: (value) => FlLine(
-                    color: theme.colorScheme.outline.withOpacity(0.3),
-                    strokeWidth: 1,
-                  ),
-                  getDrawingVerticalLine: (value) => FlLine(
-                    color: theme.colorScheme.outline.withOpacity(0.3),
-                    strokeWidth: 1,
-                  ),
-                ),
-                titlesData: FlTitlesData(
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 32,
-                      interval: (allDates.length / 6).ceil().toDouble(),
-                      getTitlesWidget: (value, meta) {
-                        final index = value.toInt();
-                        if (index >= 0 && index < allDates.length) {
-                          final date = allDates[index];
-                          return Text(
-                            '${date.month}/${date.day}',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          );
-                        }
-                        return const SizedBox.shrink();
-                      },
-                    ),
-                  ),
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 60,
-                      getTitlesWidget: (value, meta) => Text(
-                        _formatKRW(value),
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
-                  ),
-                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                ),
-                borderData: FlBorderData(
-                  show: true,
-                  border: Border.all(
-                    color: theme.colorScheme.outline.withOpacity(0.3),
-                    width: 1,
-                  ),
-                ),
-                lineBarsData: _generateStackedLines(aggregatedData, allDates, departmentColors),
-                lineTouchData: LineTouchData(
-                  touchTooltipData: LineTouchTooltipData(
-                    getTooltipItems: (touchedSpots) {
-                      return touchedSpots.map((touchedSpot) {
-                        final date = allDates[touchedSpot.x.toInt()];
-                        final dept = aggregatedData.departments[touchedSpot.barIndex];
-                        final cost = touchedSpot.y;
-                        
-                        return LineTooltipItem(
-                          '$dept\n${date.month}/${date.day}: ${_formatKRW(cost)}',
-                          TextStyle(
-                            color: theme.colorScheme.onInverseSurface,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 12,
-                          ),
-                        );
-                      }).toList();
-                    },
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  List<LineChartBarData> _generateStackedLines(
-    AggregatedCostData aggregatedData,
-    List<DateTime> allDates,
-    Map<String, Color> departmentColors,
-  ) {
-    final lines = <LineChartBarData>[];
-    final stackedValues = <int, double>{}; // index -> accumulated value
-
-    for (int deptIndex = 0; deptIndex < aggregatedData.departments.length; deptIndex++) {
-      final department = aggregatedData.departments[deptIndex];
-      final deptData = aggregatedData.departmentDaily[department] ?? {};
-      final spots = <FlSpot>[];
-
-      for (int dateIndex = 0; dateIndex < allDates.length; dateIndex++) {
-        final date = allDates[dateIndex];
-        final cost = deptData[date] ?? 0;
-        final stackedBase = stackedValues[dateIndex] ?? 0;
-        
-        spots.add(FlSpot(dateIndex.toDouble(), stackedBase + cost));
-        stackedValues[dateIndex] = stackedBase + cost;
-      }
-
-      lines.add(
-        LineChartBarData(
-          spots: spots,
-          isCurved: true,
-          color: departmentColors[department],
-          barWidth: 2,
-          isStrokeCapRound: true,
-          dotData: FlDotData(
-            show: true,
-            getDotPainter: (spot, percent, barData, index) {
-              return FlDotCirclePainter(
-                radius: 3,
-                color: departmentColors[department]!,
-                strokeWidth: 1,
-                strokeColor: Colors.white,
-              );
-            },
-          ),
-          belowBarData: BarAreaData(
-            show: true,
-            color: departmentColors[department]!.withOpacity(0.3),
-          ),
-        ),
-      );
-    }
-
-    return lines;
-  }
-
-  double _calculateGridInterval(Iterable<double> values) {
-    if (values.isEmpty) return 100;
-    
-    final maxValue = values.reduce((a, b) => a > b ? a : b);
-    if (maxValue <= 100) return 20;
-    if (maxValue <= 500) return 100;
-    if (maxValue <= 1000) return 200;
-    if (maxValue <= 5000) return 1000;
-    return 2000;
-  }
-
-  Widget _buildCostSummaryCards(List<GPUModel> gpuData, ThemeData theme) {
-    final gpusWithCost = gpuData.where((gpu) => gpu.cloudMetadata != null);
-    final totalHourlyRate = gpusWithCost.fold<double>(
-      0, (sum, gpu) => sum + gpu.cloudMetadata!.hourlyRate);
-    final totalMonthlyRate = totalHourlyRate * 720;
-    final activeGpuCount = gpuData.where((gpu) => gpu.avgUtil > 0).length;
-    final totalGpuCount = gpuData.length;
-    final avgDailyCost = totalHourlyRate * 24;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '비용 요약 카드들',
-          style: theme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: AppConstants.spacingM),
-        Row(
-          children: [
-            Expanded(
-              child: _buildCostSummaryCard(
-                '총 월 비용',
-                _formatKRW(totalMonthlyRate),
-                '720시간 기준',
-                Icons.calendar_month,
-                theme.colorScheme.primary,
-                theme,
-              ),
-            ),
-            const SizedBox(width: AppConstants.spacingM),
-            Expanded(
-              child: _buildCostSummaryCard(
-                '일 평균 비용',
-                _formatKRW(avgDailyCost),
-                '24시간 기준',
-                Icons.today,
-                theme.colorScheme.secondary,
-                theme,
-              ),
-            ),
-            const SizedBox(width: AppConstants.spacingM),
-            Expanded(
-              child: _buildCostSummaryCard(
-                '활성 GPU',
-                '$activeGpuCount/$totalGpuCount',
-                '사용률 > 0%',
-                Icons.power,
-                theme.colorScheme.tertiary,
-                theme,
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCostSummaryCard(
-    String title,
-    String value,
-    String subtitle,
-    IconData icon,
-    Color color,
-    ThemeData theme,
-  ) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppConstants.spacingL),
-        child: Column(
-          children: [
-            Icon(
-              icon,
-              size: 32,
-              color: color,
-            ),
-            const SizedBox(height: AppConstants.spacingS),
-            Text(
-              value,
-              style: theme.textTheme.headlineMedium?.copyWith(
-                color: color,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: AppConstants.spacingXS),
-            Text(
-              title,
-              style: theme.textTheme.labelLarge?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            Text(
-              subtitle,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _buildInventoryTab(List<GPUModel> gpuData, ThemeData theme) {
     return SingleChildScrollView(
@@ -1568,7 +790,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             width: 120,
             child: gpu.costPerHour != null 
                 ? Text(
-                    _formatKRW(gpu.costPerHour!),
+                    '\$${gpu.costPerHour!.toStringAsFixed(2)}',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w600,
                       color: theme.colorScheme.onSurface,
@@ -1611,16 +833,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     return theme.colorScheme.primary;
   }
 
-  /// KRW 통화 포맷팅 헬퍼 함수
-  String _formatKRW(double amount) {
-    final formatter = NumberFormat('#,###', 'ko_KR');
-    return '₩${formatter.format(amount.round())}';
-  }
-
   Color _getCostColor(double monthlyCost, ThemeData theme) {
-    // KRW 기준으로 색상 기준 조정 (기존 USD * 1300)
-    if (monthlyCost <= 650000) return const Color(0xFF4CAF50); // Green for low cost
-    if (monthlyCost <= 2600000) return const Color(0xFFFF9800); // Orange for medium cost
+    if (monthlyCost <= 500) return const Color(0xFF4CAF50); // Green for low cost
+    if (monthlyCost <= 2000) return const Color(0xFFFF9800); // Orange for medium cost
     return const Color(0xFFF44336); // Red for high cost
   }
 
@@ -1639,7 +854,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
         Expanded(
           child: _buildCostOverviewCard(
             '총 시간당 비용',
-            _formatKRW(totalHourlyRate),
+            '\$${totalHourlyRate.toStringAsFixed(2)}',
             '모든 인스턴스 합계',
             Icons.schedule,
             theme.colorScheme.primary,
@@ -1650,7 +865,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
         Expanded(
           child: _buildCostOverviewCard(
             '예상 월 비용',
-            _formatKRW(totalMonthlyRate),
+            '\$${totalMonthlyRate.toStringAsFixed(0)}',
             '720시간 기준',
             Icons.calendar_month,
             theme.colorScheme.secondary,
@@ -1673,7 +888,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           child: _buildCostOverviewCard(
             '평균 GPU당 시간당',
             gpusWithCost.isNotEmpty 
-                ? _formatKRW(totalHourlyRate / gpusWithCost.fold<int>(0, (sum, gpu) => sum + gpu.cloudMetadata!.gpuCount))
+                ? '\$${(totalHourlyRate / gpusWithCost.fold<int>(0, (sum, gpu) => sum + gpu.cloudMetadata!.gpuCount)).toStringAsFixed(2)}'
                 : '-',
             'GPU 단위 평균',
             Icons.memory,
@@ -1822,10 +1037,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                       DataCell(Text(instance.gpuTypeKoreanName)),
                       DataCell(Text(instance.instanceType)),
                       DataCell(Text(instance.gpuCount.toString())),
-                      DataCell(Text(_formatKRW(instance.hourlyRate))),
+                      DataCell(Text('\$${instance.hourlyRate.toStringAsFixed(2)}')),
                       DataCell(
                         Text(
-                          _formatKRW(instance.costPerGPUPerHour),
+                          '\$${instance.costPerGPUPerHour.toStringAsFixed(2)}',
                           style: TextStyle(
                             color: _getCostColor(instance.costPerGPUPerHour * 720, theme),
                             fontWeight: FontWeight.w600,
@@ -1834,7 +1049,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                       ),
                       DataCell(
                         Text(
-                          _formatKRW(instance.monthlyCostPerGPU),
+                          '\$${instance.monthlyCostPerGPU.toStringAsFixed(0)}',
                           style: TextStyle(
                             color: _getCostColor(instance.monthlyCostPerGPU, theme),
                             fontWeight: FontWeight.w600,
@@ -1931,7 +1146,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                             borderRadius: BorderRadius.circular(AppConstants.radiusS),
                           ),
                           child: Text(
-                            '${_formatKRW(actualMonthlyCost)}/월',
+                            '\$${actualMonthlyCost.toStringAsFixed(0)}/월',
                             style: theme.textTheme.labelLarge?.copyWith(
                               color: Colors.white,
                               fontWeight: FontWeight.w600,
@@ -1966,7 +1181,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                             style: theme.textTheme.bodyMedium,
                           ),
                           Text(
-                            '2. GPU 1장당 시간당 비용: ${_formatKRW(hourlyRate)}',
+                            '2. GPU 1장당 시간당 비용: \$${hourlyRate.toStringAsFixed(2)}',
                             style: theme.textTheme.bodyMedium,
                           ),
                           Text(
@@ -1978,7 +1193,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                             style: theme.textTheme.bodyMedium,
                           ),
                           Text(
-                            '5. 실제 월 비용: ${_formatKRW(hourlyRate)} × ${utilizationHours.toStringAsFixed(0)}시간 = ${_formatKRW(actualMonthlyCost)}',
+                            '5. 실제 월 비용: \$${hourlyRate.toStringAsFixed(2)} × ${utilizationHours.toStringAsFixed(0)}시간 = \$${actualMonthlyCost.toStringAsFixed(0)}',
                             style: theme.textTheme.bodyMedium?.copyWith(
                               fontWeight: FontWeight.w600,
                               color: theme.colorScheme.primary,
@@ -2090,7 +1305,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                       child: Column(
                         children: [
                           Text(
-                            _formatKRW(totalMonthlyCost),
+                            '\$${totalMonthlyCost.toStringAsFixed(0)}',
                             style: theme.textTheme.titleLarge?.copyWith(
                               color: Colors.white,
                               fontWeight: FontWeight.w700,

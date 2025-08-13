@@ -1,5 +1,6 @@
 import 'package:json_annotation/json_annotation.dart';
 import 'package:equatable/equatable.dart';
+import 'cloud_instance_model.dart';
 
 part 'gpu_model.g.dart';
 
@@ -67,6 +68,9 @@ class GPUModel extends Equatable {
   // 인벤토리 관리 필드
   final String? departmentName;
   final String? userName;
+  
+  // 클라우드 인스턴스 메타데이터
+  final CloudInstanceMetadata? cloudMetadata;
 
   const GPUModel({
     required this.id,
@@ -80,6 +84,7 @@ class GPUModel extends Equatable {
     required this.dailyData,
     this.departmentName,
     this.userName,
+    this.cloudMetadata,
   });
 
   factory GPUModel.fromJson(Map<String, dynamic> json) =>
@@ -150,6 +155,7 @@ class GPUModel extends Equatable {
     List<int>? dailyData,
     String? departmentName,
     String? userName,
+    CloudInstanceMetadata? cloudMetadata,
   }) {
     return GPUModel(
       id: id ?? this.id,
@@ -163,7 +169,55 @@ class GPUModel extends Equatable {
       dailyData: dailyData ?? this.dailyData,
       departmentName: departmentName ?? this.departmentName,
       userName: userName ?? this.userName,
+      cloudMetadata: cloudMetadata ?? this.cloudMetadata,
     );
+  }
+
+  /// 시간당 비용 (클라우드 메타데이터에서)
+  double? get hourlyCost => cloudMetadata?.hourlyRate;
+
+  /// GPU당 시간당 비용
+  double? get costPerHour => cloudMetadata?.costPerGPUPerHour;
+
+  /// 월간 예상 비용
+  double? get monthlyCost => cloudMetadata?.monthlyCost;
+
+  /// GPU당 월간 예상 비용
+  double? get monthlyCostPerGPU => cloudMetadata?.monthlyCostPerGPU;
+
+  /// 비용 효율성 등급 (사용률과 비용을 모두 고려)
+  CostEfficiencyLevel? get costEfficiencyLevel {
+    if (cloudMetadata == null) return null;
+    
+    // 사용률이 0%면 비용에 상관없이 효율성이 낮음
+    if (avgUtil == 0) return CostEfficiencyLevel.expensive;
+    
+    final costPerGpu = cloudMetadata!.costPerGPUPerHour;
+    final utilizationFactor = avgUtil / 100.0; // 0.0 to 1.0
+    final costEfficiencyScore = utilizationFactor / costPerGpu;
+    
+    // 사용률과 비용을 모두 고려한 효율성 등급
+    if (costEfficiencyScore >= 0.5) return CostEfficiencyLevel.excellent;  // 높은 사용률 + 저렴한 비용
+    if (costEfficiencyScore >= 0.2) return CostEfficiencyLevel.good;       // 보통 사용률 + 적당한 비용
+    if (costEfficiencyScore >= 0.05) return CostEfficiencyLevel.moderate;  // 낮은 사용률 또는 높은 비용
+    return CostEfficiencyLevel.expensive;                                 // 매우 낮은 사용률 또는 매우 높은 비용
+  }
+
+  /// 클라우드 제공자
+  String? get cloudProvider => cloudMetadata?.providerKoreanName;
+
+  /// GPU 타입 (하드웨어)
+  String? get hardwareGpuType => cloudMetadata?.gpuTypeKoreanName;
+
+  /// 인스턴스 타입
+  String? get instanceType => cloudMetadata?.instanceType;
+
+  /// 사용률 대비 비용 효율성 점수 (0-100)
+  double? get utilizationCostScore {
+    if (cloudMetadata == null || avgUtil == 0) return null;
+    final costPerGpu = cloudMetadata!.costPerGPUPerHour;
+    // 사용률이 높고 비용이 낮을수록 높은 점수
+    return (avgUtil / 100) * (5.0 / (costPerGpu + 1.0)) * 100;
   }
 
   @override
@@ -179,6 +233,7 @@ class GPUModel extends Equatable {
         dailyData,
         departmentName,
         userName,
+        cloudMetadata,
       ];
 }
 

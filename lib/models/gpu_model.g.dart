@@ -50,6 +50,10 @@ GPUModel _$GPUModelFromJson(Map<String, dynamic> json) => GPUModel(
           .toList(),
       departmentName: json['departmentName'] as String?,
       userName: json['userName'] as String?,
+      cloudMetadata: json['cloudMetadata'] == null
+          ? null
+          : CloudInstanceMetadata.fromJson(
+              json['cloudMetadata'] as Map<String, dynamic>),
     );
 
 Map<String, dynamic> _$GPUModelToJson(GPUModel instance) => <String, dynamic>{
@@ -64,4 +68,5 @@ Map<String, dynamic> _$GPUModelToJson(GPUModel instance) => <String, dynamic>{
       'dailyData': instance.dailyData,
       'departmentName': instance.departmentName,
       'userName': instance.userName,
+      'cloudMetadata': instance.cloudMetadata,
     };

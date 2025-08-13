@@ -25,35 +25,6 @@ class CustomColumnNotifier extends StateNotifier<List<CustomColumnModel>> {
         order: 1,
         isVisible: true,
       ),
-      CustomColumnModel(
-        id: 'priority',
-        name: '우선순위',
-        type: CustomColumnType.dropdown,
-        dropdownOptions: ['높음', '보통', '낮음'],
-        order: 2,
-        isVisible: true,
-      ),
-      CustomColumnModel(
-        id: 'deadline',
-        name: '마감일',
-        type: CustomColumnType.date,
-        order: 3,
-        isVisible: true,
-      ),
-      CustomColumnModel(
-        id: 'cost_center',
-        name: '비용센터',
-        type: CustomColumnType.text,
-        order: 4,
-        isVisible: true,
-      ),
-      CustomColumnModel(
-        id: 'is_production',
-        name: '운영환경',
-        type: CustomColumnType.boolean,
-        order: 5,
-        isVisible: true,
-      ),
     ];
   }
 
