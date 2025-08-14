@@ -712,14 +712,73 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                   ),
                 ),
                 const Spacer(),
-                Icon(
-                  Icons.show_chart,
-                  color: theme.colorScheme.primary,
-                  size: 20,
+                Tooltip(
+                  message: '부서별 누적 스택 라인 + 총합 라인(검정)\nY축: KRW, 1-2-5 눈금, 최소 1,000원 간격',
+                  child: Icon(
+                    Icons.show_chart,
+                    color: theme.colorScheme.primary,
+                    size: 20,
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: AppConstants.spacingM),
+            // 선택 필터 요약 (총액/일평균)
+            Consumer(
+              builder: (context, ref, _) {
+                final filteredDataAsync = ref.watch(filteredCostDataProvider);
+                return filteredDataAsync.when(
+                  data: (aggregatedData) {
+                    final total = aggregatedData.totalDaily.values.fold<double>(0, (sum, v) => sum + v);
+                    final days = aggregatedData.totalDaily.length;
+                    final avgDaily = days > 0 ? total / days : 0.0;
+                    return Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: theme.colorScheme.primary.withOpacity(0.25)),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.summarize, size: 16, color: theme.colorScheme.primary),
+                              const SizedBox(width: 6),
+                              Text('선택 범위 총액: ', style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.primary)),
+                              Text(_formatKRW(total), style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w700)),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.secondary.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: theme.colorScheme.secondary.withOpacity(0.25)),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.calendar_today, size: 16, color: theme.colorScheme.secondary),
+                              const SizedBox(width: 6),
+                              Text('일 평균: ', style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.secondary)),
+                              Text(_formatKRW(avgDaily), style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.secondary, fontWeight: FontWeight.w700)),
+                            ],
+                          ),
+                        ),
+                        const Spacer(),
+                      ],
+                    );
+                  },
+                  loading: () => const SizedBox.shrink(),
+                  error: (e, st) => const SizedBox.shrink(),
+                );
+              },
+            ),
+            const SizedBox(height: AppConstants.spacingS),
+            // 계산식 안내 패널
+            _buildCostFormulaHelp(theme),
             // 차트 영역
             Container(
               height: 400,
@@ -1454,12 +1513,21 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                           ),
                           SizedBox(
                             width: 120,
-                            child: Text(
-                              '시간당 단가',
-                              style: theme.textTheme.labelLarge?.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
-                              textAlign: TextAlign.center,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  '시간당 단가',
+                                  style: theme.textTheme.labelLarge?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Tooltip(
+                                  message: 'GPU 1장 기준, 원화(KRW). USD → KRW는 ×1500 적용.\n예: \$4.096/h → ₩6,144/h (A100/8)',
+                                  child: Icon(Icons.info_outline, size: 14, color: theme.colorScheme.onSurfaceVariant),
+                                ),
+                              ],
                             ),
                           ),
                           
@@ -3385,4 +3453,97 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     // 최적화 탭으로 전환 (세 번째 탭, 인덱스 2)
     _tabController.animateTo(2);
   }
+}
+
+// 비용 계산식 안내 패널 (GPU 비용 차트 카드 아래)
+Widget _buildCostFormulaHelp(ThemeData theme) {
+  return Container(
+    margin: const EdgeInsets.only(top: 8, bottom: 12),
+    decoration: BoxDecoration(
+      color: theme.colorScheme.surfaceVariant.withOpacity(0.35),
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(color: theme.colorScheme.outline.withOpacity(0.35)),
+    ),
+    child: Theme(
+      data: theme.copyWith(dividerColor: Colors.transparent),
+      child: ExpansionTile(
+        tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+        childrenPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        title: Row(
+          children: [
+            Icon(Icons.help_outline, size: 18, color: theme.colorScheme.primary),
+            const SizedBox(width: 6),
+            Text(
+              '비용 계산식 안내',
+              style: theme.textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: theme.colorScheme.primary,
+              ),
+            ),
+          ],
+        ),
+        children: [
+          // 수식 요약
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Text(
+              '기준 통화: KRW(원), USD 단가 × 1500원을 적용',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ),
+          _buildFormulaRow(theme, 'GPU당 시간당 단가(KRW/h) =', '인스턴스 시간당(KRW/h) ÷ GPU 개수'),
+          _buildFormulaRow(theme, '일별 비용(KRW) =', 'GPU당 시간당 단가 × (평균 사용률/100) × 24'),
+          _buildFormulaRow(theme, '월 추정 비용(KRW) =', 'GPU당 시간당 단가 × (평균 사용률/100) × 720'),
+          const SizedBox(height: 6),
+          // 예시
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface,
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: theme.colorScheme.outline.withOpacity(0.25)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('예시 (A100 40GB, p4d.24xlarge)', style: theme.textTheme.labelLarge),
+                const SizedBox(height: 4),
+                _buildFormulaRow(theme, '인스턴스 시간당:', '32.77 USD × 1500 = ₩49,155'),
+                _buildFormulaRow(theme, 'GPU당 시간당:', '₩49,155 ÷ 8 = ₩6,144'),
+                _buildFormulaRow(theme, '김개발(75%) 일별:', '₩6,144 × 0.75 × 24 ≈ ₩110,592'),
+                _buildFormulaRow(theme, '월 추정:', '₩6,144 × 0.75 × 720 ≈ ₩3,321,600'),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+Widget _buildFormulaRow(ThemeData theme, String left, String right) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 2),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 148,
+          child: Text(
+            left,
+            style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            right,
+            style: theme.textTheme.bodySmall,
+          ),
+        ),
+      ],
+    ),
+  );
 }
