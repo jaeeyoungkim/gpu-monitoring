@@ -16,6 +16,7 @@ import '../utils/constants.dart';
 import '../utils/theme.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
+import 'dart:math' as math;
 
 /// 메인 대시보드 화면
 class DashboardScreen extends ConsumerStatefulWidget {
@@ -121,18 +122,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 
   Widget _buildHeader(ThemeData theme) {
     return Container(
-      padding: const EdgeInsets.all(AppConstants.spacingL),
+      padding: const EdgeInsets.all(AppConstants.spacingM),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [theme.colorScheme.primary, theme.colorScheme.primaryContainer],
+        color: theme.colorScheme.surface,
+        border: Border(
+          bottom: BorderSide(color: theme.colorScheme.outline.withOpacity(0.15)),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: theme.shadowColor,
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -142,13 +137,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
               Container(
                 padding: const EdgeInsets.all(AppConstants.spacingS),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
+                  color: theme.colorScheme.primary.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(AppConstants.radiusM),
                 ),
                 child: Icon(
                   Icons.memory,
                   size: 32,
-                  color: theme.colorScheme.onPrimary,
+                  color: theme.colorScheme.primary,
                 ),
               ),
               const SizedBox(width: AppConstants.spacingM),
@@ -159,7 +154,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                     Text(
                       AppConstants.appTitle,
                       style: theme.textTheme.headlineMedium?.copyWith(
-                        color: theme.colorScheme.onPrimary,
+                        color: theme.colorScheme.onSurface,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -167,7 +162,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                     Text(
                       AppConstants.appSubtitle,
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onPrimary.withOpacity(0.9),
+                        color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -178,7 +173,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                 onPressed: () => ref.refresh(gpuDataProvider),
                 icon: Icon(
                   Icons.refresh,
-                  color: theme.colorScheme.onPrimary,
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
                 tooltip: '데이터 새로고침',
               ),
@@ -296,6 +291,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       color: theme.colorScheme.surface,
       child: TabBar(
         controller: _tabController,
+        isScrollable: true,
         tabs: const [
           Tab(
             icon: Icon(Icons.inventory),
@@ -316,8 +312,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
         ],
         labelColor: theme.colorScheme.primary,
         unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
+        labelStyle: TextStyle(fontWeight: FontWeight.w700),
+        unselectedLabelStyle: TextStyle(fontWeight: FontWeight.w500),
         indicatorColor: theme.colorScheme.primary,
-        indicatorWeight: 3,
+        indicatorWeight: 2,
+        indicatorSize: TabBarIndicatorSize.label,
       ),
     );
   }
@@ -494,14 +493,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '부서 필터 (${filterState.selectedDepartments.length}/${departments.length})',
+                        '부서 (${filterState.selectedDepartments.length}/${departments.length})',
                         style: theme.textTheme.labelLarge?.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                       const SizedBox(height: AppConstants.spacingS),
                       Container(
-                        constraints: const BoxConstraints(maxHeight: 90),
+                        constraints: const BoxConstraints(maxHeight: 140),
                         padding: const EdgeInsets.all(AppConstants.spacingS),
                         decoration: BoxDecoration(
                           border: Border.all(color: theme.colorScheme.outline.withOpacity(0.3)),
@@ -534,14 +533,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '사용자 필터 (${filterState.selectedUsers.length}/${users.length})',
+                        '사용자 (${filterState.selectedUsers.length}/${users.length})',
                         style: theme.textTheme.labelLarge?.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                       const SizedBox(height: AppConstants.spacingS),
                       Container(
-                        constraints: const BoxConstraints(maxHeight: 90),
+                        constraints: const BoxConstraints(maxHeight: 140),
                         padding: const EdgeInsets.all(AppConstants.spacingS),
                         decoration: BoxDecoration(
                           border: Border.all(color: theme.colorScheme.outline.withOpacity(0.3)),
@@ -591,7 +590,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                           children: [
                             RadioListTile<DateRangeType>(
                               dense: true,
-                              title: Text('📅 최근30일', style: theme.textTheme.bodySmall),
+                              title: Text(' 최근30일', style: theme.textTheme.bodySmall),
                               value: DateRangeType.last30Days,
                               groupValue: filterState.dateRange.type,
                               onChanged: (value) {
@@ -602,7 +601,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                             ),
                             RadioListTile<DateRangeType>(
                               dense: true,
-                              title: Text('📅 최근7일', style: theme.textTheme.bodySmall),
+                              title: Text(' 최근7일', style: theme.textTheme.bodySmall),
                               value: DateRangeType.last7Days,
                               groupValue: filterState.dateRange.type,
                               onChanged: (value) {
@@ -735,9 +734,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                 builder: (context, ref, child) {
                   final filteredDataAsync = ref.watch(filteredCostDataProvider);
                   final filterState = ref.watch(costFilterProvider);
+                  final filterNotifier = ref.read(costFilterProvider.notifier);
                   
                   return filteredDataAsync.when(
-                    data: (aggregatedData) => _buildActualStackChart(aggregatedData, filterState, theme),
+                    data: (aggregatedData) => _buildActualStackChart(aggregatedData, filterState, filterNotifier, theme),
                     loading: () => Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -788,7 +788,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     );
   }
 
-  Widget _buildActualStackChart(AggregatedCostData aggregatedData, FilterState filterState, ThemeData theme) {
+  Widget _buildActualStackChart(AggregatedCostData aggregatedData, FilterState filterState, CostFilterNotifier filterNotifier, ThemeData theme) {
     if (aggregatedData.departmentDaily.isEmpty) {
       return Center(
         child: Column(
@@ -853,28 +853,44 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       padding: const EdgeInsets.all(AppConstants.spacingM),
       child: Column(
         children: [
-          // 범례
+          // 범례 (탭하여 부서 토글)
           Wrap(
             spacing: AppConstants.spacingM,
             runSpacing: AppConstants.spacingS,
-            children: aggregatedData.departments.map((dept) => Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 12,
-                  height: 12,
-                  decoration: BoxDecoration(
-                    color: departmentColors[dept],
-                    borderRadius: BorderRadius.circular(2),
-                  ),
+            children: aggregatedData.departments.map((dept) {
+              final isActive = filterState.selectedDepartments.isEmpty || filterState.selectedDepartments.contains(dept);
+              final baseColor = departmentColors[dept]!;
+              final legendColor = isActive ? baseColor : baseColor.withOpacity(0.35);
+              return InkWell(
+                onTap: () {
+                  filterNotifier.toggleDepartment(dept);
+                },
+                borderRadius: BorderRadius.circular(4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: legendColor,
+                        borderRadius: BorderRadius.circular(2),
+                        border: Border.all(color: baseColor.withOpacity(0.6)),
+                      ),
+                    ),
+                    const SizedBox(width: AppConstants.spacingXS),
+                    Text(
+                      dept,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: isActive
+                            ? theme.colorScheme.onSurface
+                            : theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: AppConstants.spacingXS),
-                Text(
-                  dept,
-                  style: theme.textTheme.labelSmall,
-                ),
-              ],
-            )).toList(),
+              );
+            }).toList(),
           ),
           const SizedBox(height: AppConstants.spacingM),
           // 차트
@@ -885,7 +901,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                   show: true,
                   drawVerticalLine: true,
                   drawHorizontalLine: true,
-                  horizontalInterval: _calculateGridInterval(aggregatedData.totalDaily.values),
+                  horizontalInterval: _niceGridIntervalKRW(aggregatedData.totalDaily.values),
                   getDrawingHorizontalLine: (value) => FlLine(
                     color: theme.colorScheme.outline.withOpacity(0.3),
                     strokeWidth: 1,
@@ -938,7 +954,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                     width: 1,
                   ),
                 ),
-                lineBarsData: _generateStackedLines(aggregatedData, allDates, departmentColors),
+                lineBarsData: _generateStackedLines(aggregatedData, allDates, departmentColors, theme),
                 lineTouchData: LineTouchData(
                   touchTooltipData: LineTouchTooltipData(
                     getTooltipItems: (touchedSpots) {
@@ -971,6 +987,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     AggregatedCostData aggregatedData,
     List<DateTime> allDates,
     Map<String, Color> departmentColors,
+    ThemeData theme,
   ) {
     final lines = <LineChartBarData>[];
     final stackedValues = <int, double>{}; // index -> accumulated value
@@ -996,37 +1013,74 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           color: departmentColors[department],
           barWidth: 2,
           isStrokeCapRound: true,
-          dotData: FlDotData(
-            show: true,
-            getDotPainter: (spot, percent, barData, index) {
-              return FlDotCirclePainter(
-                radius: 3,
-                color: departmentColors[department]!,
-                strokeWidth: 1,
-                strokeColor: Colors.white,
-              );
-            },
-          ),
+          dotData: const FlDotData(show: false),
           belowBarData: BarAreaData(
             show: true,
-            color: departmentColors[department]!.withOpacity(0.3),
+            color: departmentColors[department]!.withOpacity(0.18),
           ),
         ),
       );
     }
+
+    // 총합(전체) 오버레이 라인 추가
+    final totalSpots = <FlSpot>[];
+    for (int dateIndex = 0; dateIndex < allDates.length; dateIndex++) {
+      totalSpots.add(FlSpot(dateIndex.toDouble(), (stackedValues[dateIndex] ?? 0)));
+    }
+    lines.add(
+      LineChartBarData(
+        spots: totalSpots,
+        isCurved: true,
+        color: theme.colorScheme.onSurface.withOpacity(0.85),
+        barWidth: 2.6,
+        isStrokeCapRound: true,
+        dotData: const FlDotData(show: false),
+        belowBarData: BarAreaData(show: false),
+      ),
+    );
 
     return lines;
   }
 
   double _calculateGridInterval(Iterable<double> values) {
     if (values.isEmpty) return 100;
-    
     final maxValue = values.reduce((a, b) => a > b ? a : b);
     if (maxValue <= 100) return 20;
     if (maxValue <= 500) return 100;
     if (maxValue <= 1000) return 200;
     if (maxValue <= 5000) return 1000;
     return 2000;
+  }
+
+  // KRW 축에 어울리는 "nice" 간격 계산 (1-2-5 스텝)
+  double _niceGridIntervalKRW(Iterable<double> values) {
+    if (values.isEmpty) return 1000;
+    final maxValue = values.reduce((a, b) => a > b ? a : b).abs();
+    if (maxValue == 0) return 1000;
+
+    // 목표 그리드 라인 개수
+    const targetLines = 6;
+    final rough = maxValue / targetLines;
+
+    final magnitude = math.pow(10, (math.log(rough) / math.ln10).floor());
+    final residual = rough / magnitude;
+
+    double niceResidual;
+    if (residual < 1.5) {
+      niceResidual = 1;
+    } else if (residual < 3) {
+      niceResidual = 2;
+    } else if (residual < 7) {
+      niceResidual = 5;
+    } else {
+      niceResidual = 10;
+    }
+
+    final step = niceResidual * magnitude;
+
+    // 최소 1,000원 단위 이상으로 표시 (축 눈금 가독성)
+    final minStep = 1000.0;
+    return step < minStep ? minStep : step;
   }
 
   Widget _buildCostSummaryCards(List<GPUModel> gpuData, ThemeData theme) {
@@ -1042,7 +1096,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '비용 요약 카드들',
+          '비용 요약 카드',
           style: theme.textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.w600,
           ),
@@ -1568,7 +1622,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             width: 120,
             child: gpu.costPerHour != null 
                 ? Text(
-                    _formatKRW(gpu.costPerHour!),
+                    _formatHourlyRateKRW(gpu.costPerHour!),
                     style: theme.textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w600,
                       color: theme.colorScheme.onSurface,
@@ -1615,6 +1669,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   String _formatKRW(double amount) {
     final formatter = NumberFormat('#,###', 'ko_KR');
     return '₩${formatter.format(amount.round())}';
+  }
+
+  /// 시간당 단가 전용 포맷팅 (천단위로 표시)
+  String _formatHourlyRateKRW(double amount) {
+    if (amount >= 1000) {
+      final thousands = amount / 1000;
+      if (thousands == thousands.round()) {
+        return '₩${thousands.round()}천';
+      } else {
+        return '₩${thousands.toStringAsFixed(1)}천';
+      }
+    } else {
+      return '₩${amount.round()}';
+    }
   }
 
   Color _getCostColor(double monthlyCost, ThemeData theme) {

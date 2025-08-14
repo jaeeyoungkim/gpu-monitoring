@@ -60,7 +60,7 @@ class GPUDataService {
           gpuMemoryGB: 320,
           vcpu: 96,
           memoryGB: 1152,
-          hourlyRate: 32.77,
+          hourlyRate: 49155, // 32.77 * 1500
           instanceFamily: AWSInstanceFamily.p4d,
         ),
       ),
@@ -85,7 +85,7 @@ class GPUDataService {
           gpuMemoryGB: 640,
           vcpu: 192,
           memoryGB: 2048,
-          hourlyRate: 98.32,
+          hourlyRate: 147480, // 98.32 * 1500
           instanceFamily: AWSInstanceFamily.p5,
         ),
       ),
@@ -111,7 +111,7 @@ class GPUDataService {
           gpuMemoryGB: 16,
           vcpu: 4,
           memoryGB: 16,
-          hourlyRate: 0.526,
+          hourlyRate: 789, // 0.526 * 1500
           instanceFamily: AWSInstanceFamily.g4dn,
         ),
       ),
@@ -136,7 +136,7 @@ class GPUDataService {
           gpuMemoryGB: 128,
           vcpu: 96,
           memoryGB: 384,
-          hourlyRate: 7.824,
+          hourlyRate: 11736, // 7.824 * 1500
           instanceFamily: AWSInstanceFamily.g4dn,
         ),
       ),
@@ -163,7 +163,7 @@ class GPUDataService {
           gpuMemoryGB: 640,
           vcpu: 96,
           memoryGB: 1152,
-          hourlyRate: 40.96,
+          hourlyRate: 61440, // 40.96 * 1500
           instanceFamily: AWSInstanceFamily.p4de,
         ),
       ),
@@ -188,7 +188,7 @@ class GPUDataService {
           gpuMemoryGB: 320,
           vcpu: 96,
           memoryGB: 1152,
-          hourlyRate: 32.77,
+          hourlyRate: 49155, // 32.77 * 1500
           instanceFamily: AWSInstanceFamily.p4d,
         ),
       ),
@@ -220,7 +220,7 @@ class GPUDataService {
           gpuMemoryGB: 640,
           vcpu: 192,
           memoryGB: 2048,
-          hourlyRate: 98.32,
+          hourlyRate: 147480, // 98.32 * 1500
           instanceFamily: AWSInstanceFamily.p5,
         ),
       ),
@@ -245,7 +245,7 @@ class GPUDataService {
           gpuMemoryGB: 640,
           vcpu: 96,
           memoryGB: 1152,
-          hourlyRate: 40.96,
+          hourlyRate: 61440, // 40.96 * 1500
           instanceFamily: AWSInstanceFamily.p4de,
         ),
       ),
@@ -275,7 +275,7 @@ class GPUDataService {
           gpuMemoryGB: 640,
           vcpu: 192,
           memoryGB: 2048,
-          hourlyRate: 98.32,
+          hourlyRate: 147480, // 98.32 * 1500
           instanceFamily: AWSInstanceFamily.p5,
         ),
       ),
@@ -300,7 +300,7 @@ class GPUDataService {
           gpuMemoryGB: 320,
           vcpu: 96,
           memoryGB: 1152,
-          hourlyRate: 32.77,
+          hourlyRate: 49155, // 32.77 * 1500
           instanceFamily: AWSInstanceFamily.p4d,
         ),
       ),
@@ -332,7 +332,7 @@ class GPUDataService {
           gpuMemoryGB: 640,
           vcpu: 192,
           memoryGB: 2048,
-          hourlyRate: 98.32,
+          hourlyRate: 147480, // 98.32 * 1500
           instanceFamily: AWSInstanceFamily.p5,
         ),
       ),
@@ -357,7 +357,7 @@ class GPUDataService {
           gpuMemoryGB: 640,
           vcpu: 96,
           memoryGB: 1152,
-          hourlyRate: 40.96,
+          hourlyRate: 61440, // 40.96 * 1500
           instanceFamily: AWSInstanceFamily.p4de,
         ),
       ),
@@ -386,7 +386,7 @@ class GPUDataService {
           gpuMemoryGB: 640,
           vcpu: 192,
           memoryGB: 2048,
-          hourlyRate: 98.32,
+          hourlyRate: 147480, // 98.32 * 1500
           instanceFamily: AWSInstanceFamily.p5,
         ),
       ),
@@ -411,7 +411,7 @@ class GPUDataService {
           gpuMemoryGB: 320,
           vcpu: 96,
           memoryGB: 1152,
-          hourlyRate: 32.77,
+          hourlyRate: 49155, // 32.77 * 1500
           instanceFamily: AWSInstanceFamily.p4d,
         ),
       ),
